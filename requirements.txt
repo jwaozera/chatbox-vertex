@@ -1,0 +1,8 @@
+pywebview
+google-generativeai
+mss
+SpeechRecognition
+pyaudio
+python-dotenv
+numpy
+pillow
