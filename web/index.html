@@ -1,110 +1,168 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom Style -->
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body class="overflow-hidden select-none">
 
     <!-- Settings Modal -->
     <div id="settings-modal"
-        class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
-        <div class="bg-gray-900 border border-gray-700 p-6 rounded-xl w-80 shadow-2xl flex flex-col space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="text-white text-lg font-bold">Setup API Key</h2>
+        class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-md animate-enter">
+        <div
+            class="bg-[#0f172a] border border-gray-700 p-6 rounded-2xl w-[90%] max-w-sm shadow-2xl flex flex-col space-y-4 max-h-[90%] overflow-y-auto custom-scrollbar">
+
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                <h2 class="text-white text-lg font-bold">Configurações</h2>
                 <button id="close-settings-btn" class="text-gray-400 hover:text-white transition no-drag">
                     <i class="fa-solid fa-times"></i>
                 </button>
             </div>
 
-            <div class="text-gray-400 text-xs text-justify leading-relaxed">
-                Enter your Google Gemini API Key. The key is stored locally on your machine.
+            <div class="space-y-2">
+                <label class="text-gray-400 text-xs uppercase font-bold tracking-wider">Provedor LLM</label>
+                <div class="flex space-x-2 bg-gray-800 p-1 rounded-lg">
+                    <button class="provider-tab flex-1 py-1 rounded-md text-sm transition text-white bg-blue-600 shadow"
+                        data-provider="gemini">Gemini</button>
+                    <button
+                        class="provider-tab flex-1 py-1 rounded-md text-sm text-gray-400 hover:text-white transition"
+                        data-provider="openrouter">OpenRouter</button>
+                </div>
             </div>
 
-            <input type="password" id="api-key-input" placeholder="AI..."
-                class="w-full p-2 rounded bg-gray-800 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition no-drag text-sm">
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Gemini API Key</label>
+                    <input type="password" id="gemini-key-input" placeholder="AI..."
+                        class="glass-input w-full p-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">OpenRouter Key</label>
+                    <input type="password" id="openrouter-key-input" placeholder="sk-or-..."
+                        class="glass-input w-full p-2 rounded text-xs">
+                </div>
+            </div>
 
-            <button id="save-key-btn"
-                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition no-drag text-sm">
-                Save & Start
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Modelo Gemini</label>
+                    <input type="text" id="gemini-model-input" value="gemini-2.5-flash"
+                        class="glass-input w-full p-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Modelo OpenRouter</label>
+                    <input type="text" id="openrouter-model-input" value="meta-llama/llama-3.3-70b-instruct:free"
+                        class="glass-input w-full p-2 rounded text-xs">
+                </div>
+            </div>
+
+            <div class="h-[1px] bg-gray-700 my-2"></div>
+
+            <!-- TOGGLE SWITCHES REPLACEMENT -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-300 text-sm font-medium">RAG (Memória)</span>
+                    <label for="rag-toggle" class="flex items-center cursor-pointer relative">
+                        <input type="checkbox" id="rag-toggle" class="sr-only toggle-checkbox">
+                        <div class="toggle-switch-bg border border-gray-600">
+                            <div class="toggle-dot shadow-sm"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-300 text-sm font-medium">Busca Web</span>
+                    <label for="web-toggle" class="flex items-center cursor-pointer relative">
+                        <input type="checkbox" id="web-toggle" class="sr-only toggle-checkbox">
+                        <div class="toggle-switch-bg border border-gray-600">
+                            <div class="toggle-dot shadow-sm"></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button id="save-settings-btn"
+                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition no-drag text-sm mt-2 shadow-lg hover:shadow-blue-500/20">
+                Salvar & Aplicar
             </button>
         </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="h-screen w-screen flex flex-col glass-container relative group">
+    <div class="h-screen w-screen flex flex-col glass-container relative">
 
-        <!-- Header (Drag Region) -->
         <div
-            class="h-10 flex items-center justify-between px-4 drag-region pywebview-drag-region cursor-move shrink-0 bg-white/5 hover:bg-white/10 transition-colors">
-
-            <!-- Left: Title -->
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-robot text-blue-400 text-sm"></i>
-                <div class="text-xs font-bold text-gray-300 tracking-wider">AI ASSISTANT</div>
+            class="h-12 flex items-center justify-between px-4 drag-region pywebview-drag-region shrink-0 bg-white/5 border-b border-white/5">
+            <div class="flex items-center space-x-3">
+                <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"
+                    title="Online"></div>
+                <!-- PROVIDER LABEL UPDATE -->
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-gray-300 tracking-widest opacity-80 leading-none">ASSISTENTE IA CHATBOT VERTEX</span>
+                    <span id="provider-label"
+                        class="text-[8px] text-blue-400 uppercase tracking-wide leading-tight">GEMINI</span>
+                </div>
             </div>
 
-            <!-- Right: Actions -->
-            <div class="flex items-center space-x-3">
-                <button id="settings-btn" class="text-gray-400 hover:text-white transition no-drag" title="Settings">
+            <div class="flex items-center space-x-4">
+                <div class="flex space-x-2 text-[10px] font-mono">
+                    <span id="rag-status" class="text-gray-600 transition duration-300">RAG</span>
+                    <span id="web-status" class="text-gray-600 transition duration-300">WEB</span>
+                </div>
+
+                <div class="h-4 w-[1px] bg-gray-600 opacity-30"></div>
+
+                <button id="settings-btn"
+                    class="text-gray-400 hover:text-white transition no-drag transform hover:rotate-90 duration-500">
                     <i class="fa-solid fa-gear"></i>
                 </button>
-                <div class="h-4 w-[1px] bg-gray-600"></div>
-                <button id="close-app-btn" class="text-gray-400 hover:text-red-500 transition no-drag"
-                    title="Close App">
-                    <i class="fa-solid fa-power-off"></i>
+                <button id="close-app-btn"
+                    class="text-gray-400 hover:text-red-500 transition no-drag hover:bg-red-500/10 rounded-full w-6 h-6 flex items-center justify-center">
+                    <i class="fa-solid fa-power-off text-xs"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Chat Area -->
-        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-            <!-- Messages will be injected here -->
-            <div class="flex flex-col space-y-1">
-                <div
-                    class="self-start bg-gray-800 bg-opacity-60 text-gray-200 px-3 py-2 rounded-2xl rounded-tl-none max-w-[85%] text-sm">
-                    Olá! Como posso ajudar você hoje?
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar scroll-smooth">
+            <div class="flex flex-col space-y-1 animate-enter">
+                <div class="self-start text-[10px] text-gray-500 ml-1 mb-1">System</div>
+                <div class="message-ai px-4 py-3 max-w-[90%] text-sm leading-relaxed backdrop-blur-md">
+                    Assistente IA Chatbot Vertex Online. Como posso ajudar hoje?
                 </div>
             </div>
         </div>
 
-        <!-- Footer / Input Area -->
-        <div class="p-4 shrink-0">
+        <div class="p-4 shrink-0 bg-gradient-to-t from-[#0f172a]/80 to-transparent">
             <div
-                class="flex items-end space-x-2 bg-gray-800 bg-opacity-50 p-2 rounded-2xl border border-gray-700 backdrop-blur-sm">
-
-                <button id="vision-btn" class="p-2 text-gray-400 hover:text-blue-400 transition no-drag rounded-full"
-                    title="Analyze Screen">
+                class="flex items-end space-x-2 bg-gray-900/60 p-2 rounded-2xl border border-gray-700/50 backdrop-blur-md shadow-lg transition focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20">
+                <button id="vision-btn"
+                    class="p-2 text-gray-400 hover:text-blue-400 transition no-drag rounded-xl hover:bg-white/5"
+                    title="Ver Tela">
                     <i class="fa-solid fa-eye"></i>
                 </button>
-
                 <textarea id="user-input" rows="1"
-                    class="flex-1 bg-transparent text-white placeholder-gray-500 text-sm focus:outline-none resize-none py-2 no-drag custom-scrollbar"
-                    placeholder="Ask me anything..."></textarea>
-
-                <button id="mic-btn" class="p-2 text-gray-400 hover:text-red-400 transition no-drag rounded-full"
-                    title="Record Audio">
+                    class="flex-1 bg-transparent text-gray-200 placeholder-gray-500 text-sm focus:outline-none resize-none py-2 no-drag custom-scrollbar"
+                    style="min-height: 24px; max-height: 100px;" placeholder="Digite ou fale..."></textarea>
+                <button id="mic-btn"
+                    class="p-2 text-gray-400 hover:text-red-400 transition no-drag rounded-xl hover:bg-white/5"
+                    title="Gravar Audio">
                     <i class="fa-solid fa-microphone"></i>
                 </button>
-
-                <button id="send-btn" class="p-2 text-gray-400 hover:text-green-400 transition no-drag rounded-full"
-                    title="Send">
+                <button id="send-btn"
+                    class="p-2 text-blue-500 hover:text-blue-400 transition no-drag rounded-xl bg-blue-500/10 hover:bg-blue-500/20"
+                    title="Enviar">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
         </div>
 
     </div>
-
     <script src="app.js"></script>
 </body>
 

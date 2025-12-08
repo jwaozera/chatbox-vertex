@@ -1,184 +1,275 @@
+
+// DOM Elements
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
-const visionBtn = document.getElementById('vision-btn');
 const micBtn = document.getElementById('mic-btn');
-const settingsModal = document.getElementById('settings-modal');
-const apiKeyInput = document.getElementById('api-key-input');
-const saveKeyBtn = document.getElementById('save-key-btn');
+const visionBtn = document.getElementById('vision-btn');
 const settingsBtn = document.getElementById('settings-btn');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
 const closeAppBtn = document.getElementById('close-app-btn');
 
+// Settings Inputs
+const geminiKeyInput = document.getElementById('gemini-key-input');
+const openrouterKeyInput = document.getElementById('openrouter-key-input');
+const geminiModelInput = document.getElementById('gemini-model-input');
+const openrouterModelInput = document.getElementById('openrouter-model-input');
+const ragToggle = document.getElementById('rag-toggle');
+const webToggle = document.getElementById('web-toggle');
+const providerTabs = document.querySelectorAll('.provider-tab');
+const ragStatus = document.getElementById('rag-status');
+const webStatus = document.getElementById('web-status');
+const providerLabel = document.getElementById('provider-label'); // NEW
+
+// State
+let selectedProvider = 'gemini';
 let isRecording = false;
 
-// --- funções auxiliares ---
+// Initialize
+window.addEventListener('pywebviewready', async () => {
+    console.log('PyWebview Ready');
+    await loadSettings();
+    userInput.focus();
+});
 
-function addMessage(text, isUser = false, image = null) {
-    const div = document.createElement('div');
-    div.className = `flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`;
+// Settings Logic
+async function loadSettings() {
+    try {
+        const settings = await window.pywebview.api.get_settings();
 
-    let contentHtml = '';
+        // Keys
+        geminiKeyInput.value = settings.api_keys?.gemini || '';
+        openrouterKeyInput.value = settings.api_keys?.openrouter || '';
 
-    if (image) {
-        contentHtml += `<img src="data:image/png;base64,${image}" class="max-w-[150px] rounded-lg border border-gray-600 mb-1">`;
+        // Models
+        geminiModelInput.value = settings.models?.gemini || 'gemini-2.5-flash';
+        openrouterModelInput.value = settings.models?.openrouter || 'meta-llama/llama-3.3-70b-instruct:free';
+
+        // Toggles
+        ragToggle.checked = settings.rag_enabled;
+        webToggle.checked = settings.web_enabled;
+        updateStatusIndicators(settings.rag_enabled, settings.web_enabled);
+
+        // Provider
+        selectedProvider = settings.current_provider || 'gemini';
+        updateProviderTabs(selectedProvider);
+        updateProviderLabel(selectedProvider); // NEW
+
+    } catch (e) {
+        console.error("Error loading settings", e);
+    }
+}
+
+function updateProviderTabs(provider) {
+    selectedProvider = provider;
+    providerTabs.forEach(tab => {
+        if (tab.dataset.provider === provider) {
+            tab.classList.add('bg-blue-600', 'text-white', 'shadow');
+            tab.classList.remove('text-gray-400');
+        } else {
+            tab.classList.remove('bg-blue-600', 'text-white', 'shadow');
+            tab.classList.add('text-gray-400');
+        }
+    });
+}
+
+function updateProviderLabel(provider) {
+    if (providerLabel) {
+        providerLabel.innerText = provider.toUpperCase();
+        if (provider === 'gemini') {
+            providerLabel.className = 'text-[8px] text-blue-400 uppercase tracking-wide leading-tight';
+        } else {
+            providerLabel.className = 'text-[8px] text-purple-400 uppercase tracking-wide leading-tight';
+        }
+    }
+}
+
+function updateStatusIndicators(rag, web) {
+    if (rag) {
+        ragStatus.classList.remove('text-gray-600');
+        ragStatus.classList.add('text-blue-400', 'font-bold');
+    } else {
+        ragStatus.classList.add('text-gray-600');
+        ragStatus.classList.remove('text-blue-400', 'font-bold');
     }
 
-    if (text) {
-        contentHtml += `
-            <div class="${isUser ? 'bg-blue-600 text-white' : 'bg-gray-800 bg-opacity-60 text-gray-200'} 
-                        px-3 py-2 rounded-2xl ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'} 
-                        max-w-[85%] text-sm break-words whitespace-pre-wrap">
-                ${text}
+    if (web) {
+        webStatus.classList.remove('text-gray-600');
+        webStatus.classList.add('text-green-400', 'font-bold');
+    } else {
+        webStatus.classList.add('text-gray-600');
+        webStatus.classList.remove('text-green-400', 'font-bold');
+    }
+}
+
+providerTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        updateProviderTabs(tab.dataset.provider);
+    });
+});
+
+saveSettingsBtn.addEventListener('click', async () => {
+    const settings = {
+        api_keys: {
+            gemini: geminiKeyInput.value,
+            openrouter: openrouterKeyInput.value,
+        },
+        models: {
+            gemini: geminiModelInput.value,
+            openrouter: openrouterModelInput.value,
+        },
+        rag_enabled: ragToggle.checked,
+        web_enabled: webToggle.checked,
+        provider: selectedProvider
+    };
+
+    const success = await window.pywebview.api.save_settings(settings);
+    if (success) {
+        updateStatusIndicators(ragToggle.checked, webToggle.checked);
+        updateProviderLabel(selectedProvider);
+        toggleModal(false);
+        addMessage('system', 'Configurações salvas e aplicadas.');
+    }
+});
+
+// UI Actions
+settingsBtn.addEventListener('click', () => toggleModal(true));
+closeSettingsBtn.addEventListener('click', () => toggleModal(false));
+closeAppBtn.addEventListener('click', () => window.pywebview.api.close_app());
+
+function toggleModal(show) {
+    if (show) {
+        settingsModal.classList.remove('hidden');
+    } else {
+        settingsModal.classList.add('hidden');
+    }
+}
+
+// Chat Logic
+function addMessage(sender, text) {
+    const div = document.createElement('div');
+    if (sender === 'system') {
+        div.className = 'self-center text-xs text-gray-500 my-2';
+        div.innerText = text;
+    } else {
+        div.className = 'flex flex-col space-y-1 animate-enter';
+        const name = sender === 'user' ? 'Você' : 'Vertex';
+        const bubbleClass = sender === 'user' ? 'message-user' : 'message-ai';
+
+        div.innerHTML = `
+            <div class="self-start text-[10px] text-gray-500 ml-1 mb-1 ${sender === 'user' ? 'self-end mr-1' : ''}">${name}</div>
+            <div class="${bubbleClass} px-4 py-3 max-w-[90%] text-sm leading-relaxed backdrop-blur-md markdown-body">
+                ${marked.parse(text)}
             </div>
         `;
     }
-
-    div.innerHTML = contentHtml;
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function showLoading() {
-    const div = document.createElement('div');
-    div.id = 'loading-indicator';
-    div.className = 'flex items-start';
-    div.innerHTML = `
-        <div class="bg-gray-800 bg-opacity-60 text-gray-400 px-3 py-2 rounded-2xl rounded-tl-none text-sm">
-            pensando<span class="loading-dots"></span>
-        </div>
-    `;
-    chatBox.appendChild(div);
+async function handleSend() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    // reset input height
+    userInput.style.height = 'auto';
+    userInput.value = '';
+
+    addMessage('user', text);
+
+    // Show typing state
+    const typingId = 'typing-' + Date.now();
+    const typingDiv = document.createElement('div');
+    typingDiv.id = typingId;
+    typingDiv.className = 'flex flex-col space-y-1 animate-enter';
+    typingDiv.innerHTML = `
+        <div class="message-ai px-4 py-3 max-w-[90%] text-gray-400 text-sm">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Pensando...
+        </div>`;
+    chatBox.appendChild(typingDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
+
+    try {
+        const response = await window.pywebview.api.send_message(text);
+
+        // Remove typing
+        const el = document.getElementById(typingId);
+        if (el) el.remove();
+
+        addMessage('ai', response);
+    } catch (e) {
+        const el = document.getElementById(typingId);
+        if (el) el.remove();
+        addMessage('system', 'Erro: ' + e);
+    }
 }
 
-function hideLoading() {
-    const el = document.getElementById('loading-indicator');
-    if (el) el.remove();
-}
-
-// --- (listeners) ---
-
-// redimensiona o input automaticamente
-userInput.addEventListener('input', function () {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-    if (this.value === '') this.style.height = 'auto';
-});
+sendBtn.addEventListener('click', handleSend);
 
 userInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        handleSend();
     }
-});
-
-const closeSettingsBtn = document.getElementById('close-settings-btn');
-
-sendBtn.addEventListener('click', sendMessage);
-
-settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-    apiKeyInput.focus();
-});
-
-closeSettingsBtn.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-});
-
-// esc pra fechar o modal
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        if (!settingsModal.classList.contains('hidden')) {
-            settingsModal.classList.add('hidden');
-        }
-    }
-});
-
-saveKeyBtn.addEventListener('click', () => {
-    const key = apiKeyInput.value.trim();
-    if (key) {
-        pywebview.api.save_settings(key).then(() => {
-            settingsModal.classList.add('hidden');
-            addMessage("chave api salva!", false);
-        });
-    }
-});
-
-visionBtn.addEventListener('click', () => {
-    addMessage("analisando tela...", true); // log da ação do usuário
-    showLoading();
-    // um delayzinho pra dar tempo da ui atualizar antes do screenshot travar ou esconder a janela
+    // Auto resize
     setTimeout(() => {
-        pywebview.api.analyze_screen(userInput.value).then(response => {
-            hideLoading();
-            addMessage(response, false);
-        }).catch(err => {
-            hideLoading();
-            addMessage("erro: " + err, false);
-        });
-    }, 100);
+        userInput.style.height = 'auto';
+        userInput.style.height = userInput.scrollHeight + 'px';
+    }, 0);
 });
 
-micBtn.addEventListener('click', () => {
-    if (!isRecording) {
-        // começa a gravar
-        isRecording = true;
-        micBtn.classList.add('recording-pulse');
-        pywebview.api.toggle_recording(true).then(() => {
-            // começou
-        });
-    } else {
-        // para de gravar
-        isRecording = false;
-        micBtn.classList.remove('recording-pulse');
-        showLoading(); // transcrevendo...
-        pywebview.api.toggle_recording(false).then(transcribedText => {
-            hideLoading();
-            if (transcribedText) {
-                userInput.value = transcribedText;
-                userInput.focus();
-                // opcional: auto-enviar? melhor deixar o usuário revisar primeiro.
-            } else {
-                addMessage("não ouvi nada.", false);
-            }
-        });
+// Vision
+visionBtn.addEventListener('click', async () => {
+    const prompt = userInput.value.trim() || 'o que tem na minha tela?';
+
+    addMessage('user', '[Análise de Visão]: ' + prompt);
+    userInput.value = '';
+
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'self-center text-xs text-blue-400 my-2';
+    typingDiv.innerHTML = '<i class="fa-solid fa-eye fa-bounce"></i> Analisando tela...';
+    chatBox.appendChild(typingDiv);
+
+    try {
+        const response = await window.pywebview.api.analyze_screen(prompt);
+        typingDiv.remove();
+        addMessage('ai', response);
+    } catch (e) {
+        typingDiv.remove();
+        addMessage('system', 'Erro na visão: ' + e);
     }
 });
 
+// Mic
+micBtn.addEventListener('click', async () => {
+    isRecording = !isRecording;
 
-closeAppBtn.addEventListener('click', () => {
-    pywebview.api.close_app();
-});
+    if (isRecording) {
+        micBtn.classList.remove('text-gray-400');
+        micBtn.classList.add('text-red-500', 'animate-pulse');
+        const status = await window.pywebview.api.toggle_recording(true);
+        if (status) addMessage('system', status);
+    } else {
+        micBtn.classList.add('text-gray-400');
+        micBtn.classList.remove('text-red-500', 'animate-pulse');
 
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'self-center text-xs text-gray-500 my-2';
+        typingDiv.innerText = 'Processando áudio...';
+        chatBox.appendChild(typingDiv);
 
-// --- lógica principal ---
+        const text = await window.pywebview.api.toggle_recording(false);
+        typingDiv.remove();
 
-function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text) return;
-
-    addMessage(text, true);
-    userInput.value = '';
-    userInput.style.height = 'auto';
-
-    showLoading();
-
-    pywebview.api.send_message(text).then(response => {
-        hideLoading();
-        addMessage(response, false);
-    }).catch(err => {
-        hideLoading();
-        addMessage("erro: " + err, false);
-    });
-}
-
-// --- inicialização ---
-
-window.addEventListener('pywebviewready', () => {
-    // checa se as configs existem
-    pywebview.api.load_settings().then(key => {
-        if (!key) {
-            settingsModal.classList.remove('hidden');
+        if (text) {
+            userInput.value = text;
+            userInput.focus();
+            // Optional: Auto send
+            // handleSend();
+        } else {
+            addMessage('system', 'Não foi possível entender o áudio.');
         }
-    });
+    }
 });

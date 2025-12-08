@@ -6,3 +6,8 @@ pyaudio
 python-dotenv
 numpy
 pillow
+chromadb
+requests
+beautifulsoup4
+pypdf
+duckduckgo-search>=6.0.0
