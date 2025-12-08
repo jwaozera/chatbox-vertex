@@ -34,7 +34,7 @@ class Api:
 
         # State
         self.rag_enabled = False
-        self.web_enabled = False
+
         self.current_provider = 'gemini'
 
     def close_app(self):
@@ -45,7 +45,7 @@ class Api:
             "api_keys": self.llm.api_keys,
             "models": self.llm.models,
             "rag_enabled": self.rag_enabled,
-            "web_enabled": self.web_enabled,
+
             "current_provider": self.current_provider
         }
 
@@ -53,7 +53,7 @@ class Api:
         # Update internal state
         self.current_provider = settings.get('provider', 'gemini')
         self.rag_enabled = settings.get('rag_enabled', False)
-        self.web_enabled = settings.get('web_enabled', False)
+
 
         # Update Keys/Models in LLM Manager
         if 'api_keys' in settings:
@@ -69,7 +69,7 @@ class Api:
                 'openrouter_model': self.llm.models.get('openrouter'),
                 'last_provider': self.current_provider,
                 'rag_enabled': self.rag_enabled,
-                'web_enabled': self.web_enabled
+
             }, f, indent=4)
         
         # Reload LLM manager to apply keys
@@ -88,16 +88,7 @@ class Api:
             if rag_results:
                 context_parts.append(f"=== CONTEXTO RECUPERADO (RAG) ===\n{rag_results}")
 
-        # 3. Web Search
-        if self.web_enabled and text:
-            print(f"DEBUG: Web Search Enabled. Querying: {text}")
-            try:
-                search_results = self.web.search(text)
-                print(f"DEBUG: Web Search Results Found: {len(search_results)}")
-                formatted_search = "\n".join([f"- {r['title']}: {r['body']} ({r['href']})" for r in search_results if 'title' in r])
-                context_parts.append(f"=== BUSCA WEB ===\n{formatted_search}")
-            except Exception as e:
-                print(f"DEBUG: Web Search Failed: {e}")
+
 
         # Assemble Final System Instruction
         system_instruction = (
@@ -275,4 +266,4 @@ if __name__ == '__main__':
         time.sleep(0.1)
         window.resize(450, 700)
         
-    webview.start(debug=True, func=on_loaded)
+    webview.start(debug=False, func=on_loaded)

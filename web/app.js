@@ -17,10 +17,10 @@ const openrouterKeyInput = document.getElementById('openrouter-key-input');
 const geminiModelInput = document.getElementById('gemini-model-input');
 const openrouterModelInput = document.getElementById('openrouter-model-input');
 const ragToggle = document.getElementById('rag-toggle');
-const webToggle = document.getElementById('web-toggle');
+
 const providerTabs = document.querySelectorAll('.provider-tab');
 const ragStatus = document.getElementById('rag-status');
-const webStatus = document.getElementById('web-status');
+
 const providerLabel = document.getElementById('provider-label'); // NEW
 
 // State
@@ -49,8 +49,8 @@ async function loadSettings() {
 
         // Toggles
         ragToggle.checked = settings.rag_enabled;
-        webToggle.checked = settings.web_enabled;
-        updateStatusIndicators(settings.rag_enabled, settings.web_enabled);
+
+        updateStatusIndicators(settings.rag_enabled);
 
         // Provider
         selectedProvider = settings.current_provider || 'gemini';
@@ -86,7 +86,7 @@ function updateProviderLabel(provider) {
     }
 }
 
-function updateStatusIndicators(rag, web) {
+function updateStatusIndicators(rag) {
     if (rag) {
         ragStatus.classList.remove('text-gray-600');
         ragStatus.classList.add('text-blue-400', 'font-bold');
@@ -95,13 +95,7 @@ function updateStatusIndicators(rag, web) {
         ragStatus.classList.remove('text-blue-400', 'font-bold');
     }
 
-    if (web) {
-        webStatus.classList.remove('text-gray-600');
-        webStatus.classList.add('text-green-400', 'font-bold');
-    } else {
-        webStatus.classList.add('text-gray-600');
-        webStatus.classList.remove('text-green-400', 'font-bold');
-    }
+
 }
 
 providerTabs.forEach(tab => {
@@ -121,13 +115,13 @@ saveSettingsBtn.addEventListener('click', async () => {
             openrouter: openrouterModelInput.value,
         },
         rag_enabled: ragToggle.checked,
-        web_enabled: webToggle.checked,
+
         provider: selectedProvider
     };
 
     const success = await window.pywebview.api.save_settings(settings);
     if (success) {
-        updateStatusIndicators(ragToggle.checked, webToggle.checked);
+        updateStatusIndicators(ragToggle.checked);
         updateProviderLabel(selectedProvider);
         toggleModal(false);
         addMessage('system', 'Configurações salvas e aplicadas.');
