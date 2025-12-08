@@ -21,7 +21,7 @@ class LLMManager:
             try:
                 with open(self.settings_file, 'r') as f:
                     data = json.load(f)
-                    self.api_keys['gemini'] = data.get('api_key') # Legacy support
+                    self.api_keys['gemini'] = data.get('api_key') # suporte legado
                     self.api_keys['openrouter'] = data.get('openrouter_key')
                     if data.get('gemini_model'):
                         self.models['gemini'] = data.get('gemini_model')
@@ -30,15 +30,15 @@ class LLMManager:
                     if data.get('openrouter_vision_model'):
                         self.models['openrouter_vision'] = data.get('openrouter_vision_model')
                     
-                    # Also check for specific nested keys if we change structure
+                    # verifica chaves aninhadas se a estrutura mudar
                     if 'keys' in data:
                         self.api_keys.update(data['keys'])
 
-                    # Configure Gemini immediately if key is present
+                    # configura o gemini imediatamente se tiver chave
                     if self.api_keys.get('gemini'):
                         genai.configure(api_key=self.api_keys['gemini'])
             except Exception as e:
-                print(f"Error loading settings in LLMManager: {e}")
+                print(f"erro ao carregar configurações no llmmanager: {e}")
 
     def generate_response(self, text, image_b64=None, provider='gemini', system_instruction=None):
         if provider == 'gemini':
@@ -46,18 +46,18 @@ class LLMManager:
         elif provider == 'openrouter':
             return self._generate_openrouter(text, image_b64, system_instruction)
         else:
-            return "Erro: Provedor de LLM desconhecido."
+            return "erro: provedor de llm desconhecido."
 
     def _generate_gemini(self, text, image_b64, system_instruction):
         if not self.api_keys.get('gemini'):
-            return "Por favor, configure sua KEY do Gemini primeiro."
+            return "por favor, configure sua key do gemini primeiro."
 
         try:
             model = genai.GenerativeModel(self.models['gemini'])
             content = []
             
             if system_instruction:
-               # Gemini supports system instructions better at model init usually, but for simple calls:
+               # o gemini suporta instruções de sistema melhor na inicialização, mas pra chamadas simples assim funciona:
                combined_text = f"{system_instruction}\n\n{text}"
             else:
                combined_text = text
@@ -72,20 +72,20 @@ class LLMManager:
             response = model.generate_content(content)
             return response.text.lower()
         except Exception as e:
-            return f"Erro no Gemini: {str(e)}"
+            return f"erro no gemini: {str(e)}"
 
     def _generate_openrouter(self, text, image_b64, system_instruction):
         key = self.api_keys.get('openrouter')
         if not key:
-            return "Por favor, configure sua KEY do OpenRouter primeiro."
+            return "por favor, configure sua key do openrouter primeiro."
 
         url = "https://openrouter.ai/api/v1/chat/completions"
-        print(f"DEBUG: OpenRouter Request URL: {url} | Model: {self.models['openrouter']}")
+        print(f"DEBUG: url do openrouter: {url} | modelo: {self.models['openrouter']}")
         
         headers = {
             "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:3000", # Required by OpenRouter, using dummy
+            "HTTP-Referer": "http://localhost:3000", # requerido pelo openrouter
             "X-Title": "Assistente IA"
         }
 
@@ -107,13 +107,12 @@ class LLMManager:
 
         messages.append({"role": "user", "content": user_content})
 
-        # Determine which model to use
+        # determina qual modelo usar
         current_model = self.models['openrouter']
         if image_b64:
-            # Use specific vision model if available, otherwise fallback to main
-            # Default fallback if key missing is the main model itself
+            # usa modelo de visão específico se tiver imagem, senão tenta o principal de visão
             current_model = self.models.get('openrouter_vision', "nvidia/nemotron-nano-12b-v2-vl:free")
-            print(f"DEBUG: Switching to Vision Model: {current_model}")
+            print(f"DEBUG: trocando para modelo de visão: {current_model}")
 
         data = {
             "model": current_model,
@@ -123,13 +122,13 @@ class LLMManager:
         try:
             response = requests.post(url, headers=headers, json=data)
             if response.status_code == 404:
-                return f"Erro 404: URL não encontrada ou modelo inválido ({self.models['openrouter']})"
+                return f"erro 404: url não encontrada ou modelo inválido ({self.models['openrouter']})"
             
             response.raise_for_status()
             result = response.json()
             if 'choices' in result and len(result['choices']) > 0:
                 return result['choices'][0]['message']['content'].lower()
             else:
-                return "Erro: Resposta vazia do OpenRouter."
+                return "erro: resposta vazia do openrouter."
         except Exception as e:
-             return f"Erro no OpenRouter: {str(e)}"
+             return f"erro no openrouter: {str(e)}"

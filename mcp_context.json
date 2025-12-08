@@ -1,0 +1,68 @@
+{
+    "user_profile": {},
+    "active_tasks": [
+        {
+            "task": "User query: Opa bom dia to falando com que iA?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:31:47.316102"
+        },
+        {
+            "task": "User query: SOPHIA? achei que era o gemini do google...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:32:00.512346"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:33:02.094530"
+        },
+        {
+            "task": "User query: Me explique a arvore de huffman...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:45:19.599208"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:51:35.402277"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:53:22.976351"
+        },
+        {
+            "task": "User query: teste...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:53:38.153629"
+        },
+        {
+            "task": "User query: teste...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:53:52.163702"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:55:16.519728"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:56:37.744196"
+        },
+        {
+            "task": "User query: Crie uma codigo mais robusto...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:56:49.987191"
+        },
+        {
+            "task": "User query: o que tem na minha tela?...",
+            "status": "pending",
+            "created_at": "2025-12-07 23:57:18.746805"
+        }
+    ],
+    "session_history": [],
+    "long_term_memory": {},
+    "last_updated": "2025-12-07 23:57:18.746817"
+}

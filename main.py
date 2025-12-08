@@ -13,11 +13,12 @@ import wave
 from io import BytesIO
 from PIL import Image
 
-# Managers
+# gerenciadores
 from llm_manager import LLMManager
 from rag_manager import RAGManager
-from web_search_manager import WebSearchManager
+# from web_search_manager import WebSearchManager # removido conforme pedido
 from mcp_manager import MCPManager
+from prompt_manager import PromptManager
 
 SETTINGS_FILE = 'settings.json'
 
@@ -26,15 +27,16 @@ class Api:
         self.recording = False
         self.audio_frames = []
         
-        # Initialize Managers
+        # inicializa os gerenciadores
         self.llm = LLMManager(SETTINGS_FILE)
         self.rag = RAGManager()
-        self.web = WebSearchManager()
+        # self.web = WebSearchManager() # removido
         self.mcp = MCPManager()
+        self.prompts = PromptManager()
 
-        # State
+        # estado
         self.rag_enabled = False
-
+        # self.web_enabled = False # removido
         self.current_provider = 'gemini'
 
     def close_app(self):
@@ -45,23 +47,23 @@ class Api:
             "api_keys": self.llm.api_keys,
             "models": self.llm.models,
             "rag_enabled": self.rag_enabled,
-
+            "web_enabled": False, # forçamos false aqui
             "current_provider": self.current_provider
         }
 
     def save_settings(self, settings):
-        # Update internal state
+        # atualiza estado interno
         self.current_provider = settings.get('provider', 'gemini')
         self.rag_enabled = settings.get('rag_enabled', False)
+        # self.web_enabled = settings.get('web_enabled', False)
 
-
-        # Update Keys/Models in LLM Manager
+        # atualiza chaves e modelos no gerenciador llm
         if 'api_keys' in settings:
             self.llm.api_keys.update(settings['api_keys'])
         if 'models' in settings:
             self.llm.models.update(settings['models'])
         
-        # Save to file
+        # salva no arquivo
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({
                 'keys': self.llm.api_keys,
@@ -69,38 +71,63 @@ class Api:
                 'openrouter_model': self.llm.models.get('openrouter'),
                 'last_provider': self.current_provider,
                 'rag_enabled': self.rag_enabled,
-
+                'web_enabled': False
             }, f, indent=4)
         
-        # Reload LLM manager to apply keys
+        # recarrega o llm manager pra aplicar as chaves
         self.llm._load_settings()
         return True
 
-    def send_message(self, text, image_b64=None):
+    # --- métodos da biblioteca de prompts ---
+    def get_prompts(self):
+        return self.prompts.get_all_prompts()
+
+    def save_prompt(self, prompt_data):
+        return self.prompts.save_prompt(prompt_data)
+
+    def delete_prompt(self, prompt_id):
+        return self.prompts.delete_prompt(prompt_id)
+    # ------------------------------
+
+    def send_message(self, text, image_b64=None, active_prompt=None):
         context_parts = []
 
-        # 1. MCP Context (Always active for personalization)
+        # 1. contexto mcp (sempre ativo para personalização)
         mcp_context = self.mcp.get_context_string()
         
-        # 2. RAG Retrieval
+        # 2. recuperação rag (memória)
         if self.rag_enabled and text:
             rag_results = self.rag.query_context(text)
             if rag_results:
                 context_parts.append(f"=== CONTEXTO RECUPERADO (RAG) ===\n{rag_results}")
 
+        # 3. busca web (removida)
+        # if self.web_enabled and text: ...
 
+        # determina o prompt de sistema
+        if active_prompt:
+            # constrói o prompt a partir do template customizado
+            system_instruction = (
+                f"Persona: {active_prompt.get('persona', '')}\n"
+                f"Task: {active_prompt.get('task', '')}\n"
+                f"Instructions: {active_prompt.get('instructions', '')}\n"
+                f"Output Format: {active_prompt.get('output_format', '')}\n\n"
+                "Additional Context:\n"
+                f"{mcp_context}\n" +
+                "\n".join(context_parts)
+            )
+        else:
+            # comportamento padrão
+            system_instruction = (
+                "você é um assistente de desktop avançado. aja naturalmente, como um parceiro de trabalho.\n"
+                "responda sempre em português do brasil. use letras minúsculas.\n"
+                "se tiver imagem, analise e descreva.\n"
+                "use as informações de contexto abaixo para enriquecer sua resposta, se relevante.\n\n"
+                f"{mcp_context}\n" +
+                "\n".join(context_parts)
+            )
 
-        # Assemble Final System Instruction
-        system_instruction = (
-            "Você é um assistente de desktop avançado. aja naturalmente, como um parceiro de trabalho.\n"
-            "responda sempre em português do brasil. use letras minúsculas.\n"
-            "se tiver imagem, analise e descreva.\n"
-            "use as informações de contexto abaixo para enriquecer sua resposta, se relevante.\n\n"
-            f"{mcp_context}\n" +
-            "\n".join(context_parts)
-        )
-
-        # Call LLM
+        # chama o llm
         response = self.llm.generate_response(
             text, 
             image_b64=image_b64, 
@@ -108,16 +135,16 @@ class Api:
             system_instruction=system_instruction
         )
 
-        # Update MCP with interaction
+        # atualiza o mcp com a interação
         self.mcp.add_task(f"User query: {text[:50]}...")
         
-        # Save to RAG
+        # salva no rag
         if self.rag_enabled and text and len(text) > 20:
             self.rag.add_document(text, source="user_chat")
 
         return response
 
-    def analyze_screen(self, prompt="o que tem na minha tela?"):
+    def analyze_screen(self, prompt="o que tem na minha tela?", active_prompt=None):
         window = webview.windows[0]
         window.hide()
         time.sleep(0.5) 
@@ -127,7 +154,7 @@ class Api:
                 monitor = sct.monitors[1]
                 sct_img = sct.grab(monitor)
                 img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-                # Resize for performance
+                # redimensiona para performance
                 img.thumbnail((1024, 1024))
                 
                 buffered = BytesIO()
@@ -138,9 +165,10 @@ class Api:
             return f"falha ao capturar tela: {str(e)}"
 
         window.show()
-        return self.send_message(prompt, img_str)
+        # passa o prompt ativo para o send_message
+        return self.send_message(prompt, img_str, active_prompt=active_prompt)
 
-    # Audio methods
+    # métodos de áudio
     def toggle_recording(self, start):
         if start:
             if not self.recording:
@@ -156,14 +184,14 @@ class Api:
         self.audio_frames = []
         
         def record_thread():
-            print("DEBUG: Audio thread started")
+            print("DEBUG: thread de áudio iniciada")
             p = None
             stream = None
             try:
                 p = pyaudio.PyAudio()
-                # 16000Hz standard for SR
+                # 16000hz padrão para sr
                 stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
-                print("DEBUG: Stream opened successfully")
+                print("DEBUG: stream aberto com sucesso")
                 
                 while self.recording:
                     if stream.is_active():
@@ -171,14 +199,14 @@ class Api:
                         self.audio_frames.append(data)
                         
             except Exception as e:
-                print(f"DEBUG: Audio thread fatal error: {e}")
+                print(f"DEBUG: erro fatal na thread de áudio: {e}")
             finally:
                 if stream:
                     stream.stop_stream()
                     stream.close()
                 if p:
                     p.terminate()
-                print(f"DEBUG: Audio thread finished. Frames captured: {len(self.audio_frames)}")
+                print(f"DEBUG: thread de áudio finalizada. frames capturados: {len(self.audio_frames)}")
 
         self.thread = threading.Thread(target=record_thread)
         self.thread.start()
@@ -191,10 +219,10 @@ class Api:
             pass
         
         if not self.audio_frames:
-            print("DEBUG: No audio frames captured!")
+            print("DEBUG: nenhum frame de áudio capturado!")
             return None
             
-        print(f"DEBUG: Processing {len(self.audio_frames)} frames...")
+        print(f"DEBUG: processando {len(self.audio_frames)} frames...")
         
         filename = None
         try:
@@ -211,21 +239,21 @@ class Api:
             with sr.AudioFile(filename) as source:
                 audio_data = r.record(source)
                 text = r.recognize_google(audio_data, language="pt-BR")
-                print(f"DEBUG: Recognized text: {text}")
+                print(f"DEBUG: texto reconhecido: {text}")
                 
-                # Robust deletion with retry
+                # deleção robusta com retry
                 for _ in range(5):
                     try:
                         os.unlink(filename)
                         break
                     except Exception as del_err:
-                        print(f"DEBUG: Retrying file deletion ({del_err})...")
+                        print(f"DEBUG: tentando deletar arquivo novamente ({del_err})...")
                         time.sleep(0.5)
                 
                 return text
 
         except Exception as e:
-            print(f"DEBUG: Audio Recognition Error: {e}")
+            print(f"DEBUG: erro de reconhecimento de áudio: {e}")
             
             if filename:
                 for _ in range(5):
@@ -236,11 +264,11 @@ class Api:
                         time.sleep(0.5)
 
             if isinstance(e, sr.RequestError):
-                return f"Erro de conexão com serviço de voz: {e}"
+                return f"erro de conexão com serviço de voz: {e}"
             elif isinstance(e, sr.UnknownValueError):
                 return None 
             
-            return f"Erro de áudio: {str(e)[:50]}"
+            return f"erro de áudio: {str(e)[:50]}"
 
 if __name__ == '__main__':
     api = Api()

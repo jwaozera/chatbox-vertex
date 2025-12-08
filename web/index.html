@@ -65,7 +65,6 @@
 
             <div class="h-[1px] bg-gray-700 my-2"></div>
 
-            <!-- TOGGLE SWITCHES REPLACEMENT -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <span class="text-gray-300 text-sm font-medium">RAG (Memória)</span>
@@ -76,14 +75,113 @@
                         </div>
                     </label>
                 </div>
-
-
             </div>
 
             <button id="save-settings-btn"
                 class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition no-drag text-sm mt-2 shadow-lg hover:shadow-blue-500/20">
                 Salvar & Aplicar
             </button>
+        </div>
+    </div>
+
+    <!-- LIBRARY MODAL -->
+    <div id="library-modal"
+        class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md animate-enter">
+        <div
+            class="bg-[#0f172a] border border-gray-700 rounded-2xl w-[95%] h-[95%] shadow-2xl flex flex-col overflow-hidden">
+
+            <!-- Header -->
+            <div class="flex justify-between items-center bg-gray-900/50 p-4 border-b border-gray-700">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book text-blue-400"></i>
+                    <h2 class="text-white text-lg font-bold">Biblioteca de Prompts</h2>
+                </div>
+                <button id="close-library-btn" class="text-gray-400 hover:text-white transition no-drag">
+                    <i class="fa-solid fa-times fa-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Sidebar List -->
+                <div class="w-1/3 border-r border-gray-700 flex flex-col bg-gray-800/20">
+                    <div class="p-3 border-b border-gray-700">
+                        <button id="new-prompt-btn"
+                            class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-plus"></i> Novo Prompt
+                        </button>
+                    </div>
+                    <div id="prompt-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                        <!-- Prompt Items injected here -->
+                    </div>
+                </div>
+
+                <!-- Editor Area -->
+                <div class="flex-1 flex flex-col bg-gray-900/40 p-6 overflow-y-auto custom-scrollbar">
+                    <div id="prompt-editor" class="space-y-4 max-w-2xl mx-auto w-full hidden">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1 mr-4">
+                                <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Título</label>
+                                <input type="text" id="edit-title"
+                                    class="glass-input w-full p-2 rounded text-lg font-bold text-white mt-1 border-transparent focus:border-blue-500 bg-transparent">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="delete-prompt-btn"
+                                    class="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition" title="Excluir">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                <button id="save-prompt-btn"
+                                    class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition flex items-center gap-2">
+                                    <i class="fa-solid fa-save"></i> Salvar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Tags</label>
+                                <input type="text" id="edit-tags" placeholder="ex: coding, review"
+                                    class="glass-input w-full p-2 rounded text-sm mt-1">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Formato de
+                                    Saída</label>
+                                <input type="text" id="edit-output" placeholder="ex: Markdown"
+                                    class="glass-input w-full p-2 rounded text-sm mt-1">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="text-xs text-gray-500 uppercase font-bold tracking-wider text-blue-400">Persona</label>
+                            <textarea id="edit-persona" rows="2" class="glass-input w-full p-3 rounded text-sm mt-1"
+                                placeholder="Quem é a IA?"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase font-bold tracking-wider text-green-400">Task
+                                (Missão)</label>
+                            <textarea id="edit-task" rows="2" class="glass-input w-full p-3 rounded text-sm mt-1"
+                                placeholder="Qual o objetivo principal?"></textarea>
+                        </div>
+
+                        <div>
+                            <label
+                                class="text-xs text-gray-500 uppercase font-bold tracking-wider text-purple-400">Instruções</label>
+                            <textarea id="edit-instructions" rows="4"
+                                class="glass-input w-full p-3 rounded text-sm mt-1"
+                                placeholder="Regras detalhadas..."></textarea>
+                        </div>
+
+                        <input type="hidden" id="edit-id">
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="empty-editor-state" class="flex flex-col items-center justify-center h-full text-gray-500">
+                        <i class="fa-solid fa-book-open text-4xl mb-4 opacity-30"></i>
+                        <p>Selecione um prompt para editar ou inicie um novo.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -106,11 +204,14 @@
             <div class="flex items-center space-x-4">
                 <div class="flex space-x-2 text-[10px] font-mono">
                     <span id="rag-status" class="text-gray-600 transition duration-300">RAG</span>
-
                 </div>
 
                 <div class="h-4 w-[1px] bg-gray-600 opacity-30"></div>
 
+                <button id="library-btn"
+                    class="text-gray-400 hover:text-blue-400 transition no-drag transform hover:scale-110 duration-200">
+                    <i class="fa-solid fa-book"></i>
+                </button>
                 <button id="settings-btn"
                     class="text-gray-400 hover:text-white transition no-drag transform hover:rotate-90 duration-500">
                     <i class="fa-solid fa-gear"></i>
