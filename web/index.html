@@ -13,7 +13,7 @@
 
 <body class="overflow-hidden select-none">
 
-    <!-- Settings Modal -->
+    <!-- modal de configurações -->
     <div id="settings-modal"
         class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-md animate-enter">
         <div
@@ -84,13 +84,13 @@
         </div>
     </div>
 
-    <!-- LIBRARY MODAL -->
+    <!-- modal da biblioteca -->
     <div id="library-modal"
         class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md animate-enter">
         <div
             class="bg-[#0f172a] border border-gray-700 rounded-2xl w-[95%] h-[95%] shadow-2xl flex flex-col overflow-hidden">
 
-            <!-- Header -->
+            <!-- cabeçalho -->
             <div class="flex justify-between items-center bg-gray-900/50 p-4 border-b border-gray-700">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-book text-blue-400"></i>
@@ -102,7 +102,7 @@
             </div>
 
             <div class="flex flex-1 overflow-hidden">
-                <!-- Sidebar List -->
+                <!-- lista lateral -->
                 <div class="w-1/3 border-r border-gray-700 flex flex-col bg-gray-800/20">
                     <div class="p-3 border-b border-gray-700">
                         <button id="new-prompt-btn"
@@ -111,11 +111,11 @@
                         </button>
                     </div>
                     <div id="prompt-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
-                        <!-- Prompt Items injected here -->
+                        <!-- itens do prompt entram aqui -->
                     </div>
                 </div>
 
-                <!-- Editor Area -->
+                <!-- área de edição -->
                 <div class="flex-1 flex flex-col bg-gray-900/40 p-6 overflow-y-auto custom-scrollbar">
                     <div id="prompt-editor" class="space-y-4 max-w-2xl mx-auto w-full hidden">
                         <div class="flex justify-between items-start">
@@ -175,7 +175,7 @@
                         <input type="hidden" id="edit-id">
                     </div>
 
-                    <!-- Empty State -->
+                    <!-- estado vazio -->
                     <div id="empty-editor-state" class="flex flex-col items-center justify-center h-full text-gray-500">
                         <i class="fa-solid fa-book-open text-4xl mb-4 opacity-30"></i>
                         <p>Selecione um prompt para editar ou inicie um novo.</p>
@@ -192,7 +192,7 @@
             <div class="flex items-center space-x-3">
                 <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"
                     title="Online"></div>
-                <!-- PROVIDER LABEL UPDATE -->
+                <!-- atualização do label do provedor -->
                 <div class="flex flex-col">
                     <span class="text-xs font-bold text-gray-300 tracking-widest opacity-80 leading-none">ASSISTENTE IA
                         CHATBOT VERTEX</span>

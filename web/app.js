@@ -1,5 +1,5 @@
 
-// elementos do dom
+// pegando os elementos do dom
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -11,7 +11,7 @@ const settingsModal = document.getElementById('settings-modal');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 const closeAppBtn = document.getElementById('close-app-btn');
 
-// elementos da biblioteca de prompts
+// elementos da biblioteca
 const libraryBtn = document.getElementById('library-btn');
 const libraryModal = document.getElementById('library-modal');
 const closeLibraryBtn = document.getElementById('close-library-btn');
@@ -22,7 +22,7 @@ const emptyEditorState = document.getElementById('empty-editor-state');
 const savePromptBtn = document.getElementById('save-prompt-btn');
 const deletePromptBtn = document.getElementById('delete-prompt-btn');
 
-// inputs do editor
+// inputs pra edição
 const editTitle = document.getElementById('edit-title');
 const editTags = document.getElementById('edit-tags');
 const editOutput = document.getElementById('edit-output');
@@ -31,7 +31,7 @@ const editTask = document.getElementById('edit-task');
 const editInstructions = document.getElementById('edit-instructions');
 const editId = document.getElementById('edit-id');
 
-// inputs de configuração
+// inputs de config
 const geminiKeyInput = document.getElementById('gemini-key-input');
 const openrouterKeyInput = document.getElementById('openrouter-key-input');
 const geminiModelInput = document.getElementById('gemini-model-input');
@@ -41,14 +41,14 @@ const providerTabs = document.querySelectorAll('.provider-tab');
 const ragStatus = document.getElementById('rag-status');
 const providerLabel = document.getElementById('provider-label');
 
-// estado da aplicação
+// estado da app
 let selectedProvider = 'gemini';
 let isRecording = false;
-let activePrompt = null; // prompt de sistema ativo no momento
+let activePrompt = null; // prompt que tá valendo agora
 let promptsCache = [];
 let editingPromptId = null;
 
-// inicialização
+// bora iniciar
 window.addEventListener('pywebviewready', async () => {
     console.log('pywebview pronto');
     await loadSettings();
@@ -56,9 +56,9 @@ window.addEventListener('pywebviewready', async () => {
     userInput.focus();
 });
 
-// --- lógica da biblioteca de prompts ---
+// --- lógica dos prompts ---
 
-// carrega os prompts do backend
+// puxando prompts do backend
 async function loadPrompts() {
     try {
         promptsCache = await window.pywebview.api.get_prompts();
@@ -68,11 +68,11 @@ async function loadPrompts() {
     }
 }
 
-// renderiza a lista de prompts na sidebar
+// desenhando a lista de prompts na sidebar
 function renderPrompts() {
     promptList.innerHTML = '';
 
-    // ordena: ativo primeiro, depois alfabético
+    // ordem: ativo primeiro, depois alfabético
     const sortedPrompts = [...promptsCache].sort((a, b) => {
         if (activePrompt && a.id === activePrompt.id) return -1;
         if (activePrompt && b.id === activePrompt.id) return 1;
@@ -96,18 +96,18 @@ function renderPrompts() {
             <div>${tagsHtml}</div>
         `;
 
-        // clique para ativar/desativar
+        // clica pra ativar ou desativar
         card.addEventListener('click', (e) => {
             if (activePrompt && activePrompt.id === prompt.id) {
-                // desativa se já estiver ativo
+                // se já tá ativo, desativa
                 activePrompt = null;
                 addMessage('system', 'prompt desativado. voltando ao modo padrão.');
             } else {
                 activePrompt = prompt;
                 addMessage('system', `prompt ativado: <strong>${prompt.title}</strong>`);
             }
-            renderPrompts(); // renderiza novemente pra mostrar o estado atual
-            // habilita o editor pra esse prompt também
+            renderPrompts(); // desenha de novo pra atualizar
+            // libera o editor pra esse prompt tbm
             openEditor(prompt);
         });
 
@@ -115,7 +115,7 @@ function renderPrompts() {
     });
 }
 
-// abre o editor com os dados do prompt
+// abre o editor com os dados
 function openEditor(prompt) {
     editingPromptId = prompt.id;
 
@@ -132,7 +132,7 @@ function openEditor(prompt) {
     emptyEditorState.classList.add('hidden');
 }
 
-// limpa o editor para um novo prompt
+// limpa tudo pra um prompt novo
 function clearEditor() {
     editingPromptId = null;
     editTitle.value = 'Novo Prompt';
@@ -163,7 +163,7 @@ newPromptBtn.addEventListener('click', () => {
 
 savePromptBtn.addEventListener('click', async () => {
     const newPrompt = {
-        id: editingPromptId || undefined, // undefined deixa o backend gerar o id
+        id: editingPromptId || undefined, // undefined pro backend criar o id
         title: editTitle.value,
         tags: editTags.value.split(',').map(t => t.trim()).filter(t => t),
         output_format: editOutput.value,
@@ -176,9 +176,9 @@ savePromptBtn.addEventListener('click', async () => {
     try {
         const saved = await window.pywebview.api.save_prompt(newPrompt);
         if (saved) {
-            // atualiza o cache
+            // atualizando o cache
             await loadPrompts();
-            // se editou o prompt ativo, atualiza ele tbm
+            // se mexeu no prompt ativo, atualiza ele tbm
             if (activePrompt && activePrompt.id === saved.id) {
                 activePrompt = saved;
             }
@@ -218,7 +218,7 @@ async function loadSettings() {
     try {
         const settings = await window.pywebview.api.get_settings();
 
-        // chaves api
+        // chaves da api
         geminiKeyInput.value = settings.api_keys?.gemini || '';
         openrouterKeyInput.value = settings.api_keys?.openrouter || '';
 
@@ -226,12 +226,12 @@ async function loadSettings() {
         geminiModelInput.value = settings.models?.gemini || 'gemini-2.5-flash';
         openrouterModelInput.value = settings.models?.openrouter || 'meta-llama/llama-3.3-70b-instruct:free';
 
-        // toggles (rag apenas, web removido)
+        // toggles (só rag, web já era)
         ragToggle.checked = settings.rag_enabled;
 
         updateStatusIndicators(settings.rag_enabled);
 
-        // provedor atual
+        // quem tá provendo agora
         selectedProvider = settings.current_provider || 'gemini';
         updateProviderTabs(selectedProvider);
         updateProviderLabel(selectedProvider);
@@ -293,7 +293,7 @@ saveSettingsBtn.addEventListener('click', async () => {
             openrouter: openrouterModelInput.value,
         },
         rag_enabled: ragToggle.checked,
-        web_enabled: false, // força web desligada
+        web_enabled: false, // forçando web desligada
         provider: selectedProvider
     };
 
@@ -306,7 +306,7 @@ saveSettingsBtn.addEventListener('click', async () => {
     }
 });
 
-// ações da interface
+// ações da ui
 settingsBtn.addEventListener('click', () => toggleModal(true));
 closeSettingsBtn.addEventListener('click', () => toggleModal(false));
 closeAppBtn.addEventListener('click', () => window.pywebview.api.close_app());
@@ -325,12 +325,12 @@ function addMessage(sender, text) {
     const div = document.createElement('div');
     if (sender === 'system') {
         div.className = 'self-center text-xs text-gray-500 my-2';
-        div.innerHTML = text; // permite html nas msgs de sistema
+        div.innerHTML = text; // deixa html nas msgs de sistema
     } else {
         div.className = 'flex flex-col space-y-1 animate-enter';
 
         let name = sender === 'user' ? 'Você' : 'Vertex';
-        // adiciona o nome da persona se estiver ativa
+        // bota o nome da persona se tiver ativa
         if (sender === 'ai' && activePrompt) {
             name += ` <span class="text-[8px] bg-blue-900 px-1 rounded text-blue-200">${activePrompt.title}</span>`;
         }
@@ -352,13 +352,13 @@ async function handleSend() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // reseta a altura do input
+    // reseta altura do input
     userInput.style.height = 'auto';
     userInput.value = '';
 
     addMessage('user', text);
 
-    // estado de "pensando"
+    // modo "pensando"
     const typingId = 'typing-' + Date.now();
     const typingDiv = document.createElement('div');
     typingDiv.id = typingId;
@@ -371,7 +371,7 @@ async function handleSend() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        // passa o prompt ativo
+        // passando o prompt ativo
         const response = await window.pywebview.api.send_message(text, null, activePrompt);
 
         const el = document.getElementById(typingId);
@@ -399,7 +399,7 @@ userInput.addEventListener('keydown', (e) => {
     }, 0);
 });
 
-// botão de visão
+// botão da visão
 visionBtn.addEventListener('click', async () => {
     const prompt = userInput.value.trim() || 'o que tem na minha tela?';
 
@@ -412,7 +412,7 @@ visionBtn.addEventListener('click', async () => {
     chatBox.appendChild(typingDiv);
 
     try {
-        // passa o prompt ativo
+        // passando o prompt ativo
         const response = await window.pywebview.api.analyze_screen(prompt, activePrompt);
         typingDiv.remove();
         addMessage('ai', response);
@@ -422,7 +422,7 @@ visionBtn.addEventListener('click', async () => {
     }
 });
 
-// botão do microfone
+// botão do mic
 micBtn.addEventListener('click', async () => {
     isRecording = !isRecording;
 
