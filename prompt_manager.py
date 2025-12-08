@@ -80,17 +80,17 @@ class PromptManager:
     def save_prompt(self, prompt_data):
         if not prompt_data.get('id'):
             prompt_data['id'] = str(uuid.uuid4())
-            prompt_data['editable'] = True # Ensure new prompts are editable
+            prompt_data['editable'] = True # garante que os novos dá pra editar
         
-        # Check if updating existing
+        # checando se é pra atualizar
         for i, p in enumerate(self.prompts):
             if p['id'] == prompt_data['id']:
-                # Update but preserve some fields if needed, or full overwrite
+                # atualiza, mas segura uns campos se precisar, ou sobrescreve tudo
                 self.prompts[i] = prompt_data
                 self.save_prompts()
                 return prompt_data
         
-        # New prompt
+        # prompt novo na área
         self.prompts.append(prompt_data)
         self.save_prompts()
         return prompt_data

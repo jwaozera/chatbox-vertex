@@ -48,7 +48,7 @@ class MCPManager:
         self.save_context()
 
     def get_context_string(self):
-        # Format for LLM injection
+        # formato pra injetar no llm
         response = "=== CONTEXTO (MCP) ===\n"
         if self.context.get("user_profile"):
             response += f"Perfil Usuário: {json.dumps(self.context['user_profile'], ensure_ascii=False)}\n"
@@ -56,7 +56,7 @@ class MCPManager:
         tasks = [t for t in self.context.get("active_tasks", []) if t.get('status') != 'completed']
         if tasks:
             response += f"Tarefas Ativas: {len(tasks)}\n"
-            for t in tasks[:3]: # Limit to 3 recent
+            for t in tasks[:3]: # pegando só os 3 últimos
                 response += f"- {t.get('task')} ({t.get('status')})\n"
         
         return response

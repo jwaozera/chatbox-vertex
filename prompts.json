@@ -2,15 +2,15 @@
     {
         "id": "default",
         "title": "Assistente Padrão (Vertex)",
-        "persona": "Você é um assistente de desktop avançado.",
-        "task": "Aja naturalmente, como um parceiro de trabalho.",
-        "instructions": "Responda sempre em português do brasil. Use letras minúsculas. Se tiver imagem, analise e descreva detalhadamente.",
-        "output_format": "Markdown",
         "tags": [
             "default",
             "general"
         ],
-        "editable": false
+        "output_format": "Markdown",
+        "persona": "Você é um assistente de desktop avançado.",
+        "task": "Aja naturalmente, como um parceiro de trabalho.",
+        "instructions": "Responda sempre em português do brasil. Use letras minúsculas. Se tiver imagem, analise e descreva detalhadamente.",
+        "editable": true
     },
     {
         "id": "code_reviewer",

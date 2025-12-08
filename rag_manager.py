@@ -6,15 +6,15 @@ from chromadb.utils import embedding_functions
 class RAGManager:
     def __init__(self, persistence_path='chroma_db'):
         self.client = chromadb.PersistentClient(path=persistence_path)
-        # Using default embedding function (all-MiniLM-L6-v2) which downloads automatically
-        # For better privacy/offline, we might want a local one, but default is fine for now.
+        # usando o embedding padrão que baixa sozinho
+        # pra privacidade ou offline, melhor um local, mas esse serve por enquanto
         self.collection = self.client.get_or_create_collection(name="context_memory")
 
     def add_document(self, text, source="user_input", metadata=None):
         if not text or not text.strip():
             return
         
-        # Simple chunking logic (can be improved)
+        # picotando o texto de jeito simples (dá pra melhorar)
         chunk_size = 500
         chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
         
@@ -39,9 +39,9 @@ class RAGManager:
                 query_texts=[query],
                 n_results=n_results
             )
-            # Flatten results
+            # achatando os resultados
             if results and results['documents']:
-                return results['documents'][0] # Returns list of strings
+                return results['documents'][0] # retorna lista de strings
             return []
         except Exception as e:
             print(f"RAG Error: {e}")

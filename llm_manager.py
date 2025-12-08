@@ -21,7 +21,7 @@ class LLMManager:
             try:
                 with open(self.settings_file, 'r') as f:
                     data = json.load(f)
-                    self.api_keys['gemini'] = data.get('api_key') # suporte legado
+                    self.api_keys['gemini'] = data.get('api_key') # legacy, mas ainda funfa
                     self.api_keys['openrouter'] = data.get('openrouter_key')
                     if data.get('gemini_model'):
                         self.models['gemini'] = data.get('gemini_model')
@@ -30,11 +30,11 @@ class LLMManager:
                     if data.get('openrouter_vision_model'):
                         self.models['openrouter_vision'] = data.get('openrouter_vision_model')
                     
-                    # verifica chaves aninhadas se a estrutura mudar
+                    # checando chaves aninhadas caso mude a estrutura
                     if 'keys' in data:
                         self.api_keys.update(data['keys'])
 
-                    # configura o gemini imediatamente se tiver chave
+                    # já configura o gemini se tiver a chave
                     if self.api_keys.get('gemini'):
                         genai.configure(api_key=self.api_keys['gemini'])
             except Exception as e:
@@ -57,7 +57,7 @@ class LLMManager:
             content = []
             
             if system_instruction:
-               # o gemini suporta instruções de sistema melhor na inicialização, mas pra chamadas simples assim funciona:
+               # gemini prefere instrução no init, mas assim tbm rola:
                combined_text = f"{system_instruction}\n\n{text}"
             else:
                combined_text = text
@@ -85,7 +85,7 @@ class LLMManager:
         headers = {
             "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:3000", # requerido pelo openrouter
+            "HTTP-Referer": "http://localhost:3000", # openrouter pede isso
             "X-Title": "Assistente IA"
         }
 
@@ -107,10 +107,10 @@ class LLMManager:
 
         messages.append({"role": "user", "content": user_content})
 
-        # determina qual modelo usar
+        # escolhendo o modelo
         current_model = self.models['openrouter']
         if image_b64:
-            # usa modelo de visão específico se tiver imagem, senão tenta o principal de visão
+            # se tem imagem, usa o modelo de visão, senão tenta o principal
             current_model = self.models.get('openrouter_vision', "nvidia/nemotron-nano-12b-v2-vl:free")
             print(f"DEBUG: trocando para modelo de visão: {current_model}")
 

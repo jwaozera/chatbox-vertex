@@ -14,9 +14,10 @@ from io import BytesIO
 from PIL import Image
 
 # gerenciadores
+# gerenciadores
 from llm_manager import LLMManager
 from rag_manager import RAGManager
-# from web_search_manager import WebSearchManager # removido conforme pedido
+# from web_search_manager import WebSearchManager # removido porque pediram
 from mcp_manager import MCPManager
 from prompt_manager import PromptManager
 
@@ -27,14 +28,14 @@ class Api:
         self.recording = False
         self.audio_frames = []
         
-        # inicializa os gerenciadores
+        # iniciando os gerenciadores
         self.llm = LLMManager(SETTINGS_FILE)
         self.rag = RAGManager()
-        # self.web = WebSearchManager() # removido
+        # self.web = WebSearchManager() # tiraram esse
         self.mcp = MCPManager()
         self.prompts = PromptManager()
 
-        # estado
+        # estado atual
         self.rag_enabled = False
         # self.web_enabled = False # removido
         self.current_provider = 'gemini'
@@ -47,12 +48,12 @@ class Api:
             "api_keys": self.llm.api_keys,
             "models": self.llm.models,
             "rag_enabled": self.rag_enabled,
-            "web_enabled": False, # forçamos false aqui
+            "web_enabled": False, # forçando false na marra
             "current_provider": self.current_provider
         }
 
     def save_settings(self, settings):
-        # atualiza estado interno
+        # atualiza o estado interno
         self.current_provider = settings.get('provider', 'gemini')
         self.rag_enabled = settings.get('rag_enabled', False)
         # self.web_enabled = settings.get('web_enabled', False)
@@ -63,7 +64,7 @@ class Api:
         if 'models' in settings:
             self.llm.models.update(settings['models'])
         
-        # salva no arquivo
+        # salva tudo no arquivo
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({
                 'keys': self.llm.api_keys,
@@ -74,11 +75,11 @@ class Api:
                 'web_enabled': False
             }, f, indent=4)
         
-        # recarrega o llm manager pra aplicar as chaves
+        # recarrega o llm manager pra aplicar as chaves novas
         self.llm._load_settings()
         return True
 
-    # --- métodos da biblioteca de prompts ---
+    # --- funções da biblioteca de prompts ---
     def get_prompts(self):
         return self.prompts.get_all_prompts()
 
@@ -92,21 +93,21 @@ class Api:
     def send_message(self, text, image_b64=None, active_prompt=None):
         context_parts = []
 
-        # 1. contexto mcp (sempre ativo para personalização)
+        # 1. contexto mcp (sempre ligado pra personalizar)
         mcp_context = self.mcp.get_context_string()
         
-        # 2. recuperação rag (memória)
+        # 2. recuperação rag (puxando da memória)
         if self.rag_enabled and text:
             rag_results = self.rag.query_context(text)
             if rag_results:
                 context_parts.append(f"=== CONTEXTO RECUPERADO (RAG) ===\n{rag_results}")
 
-        # 3. busca web (removida)
+        # 3. busca web (foi de base)
         # if self.web_enabled and text: ...
 
-        # determina o prompt de sistema
+        # definindo o prompt de sistema
         if active_prompt:
-            # constrói o prompt a partir do template customizado
+            # monta o prompt usando o template customizado
             system_instruction = (
                 f"Persona: {active_prompt.get('persona', '')}\n"
                 f"Task: {active_prompt.get('task', '')}\n"
@@ -117,7 +118,7 @@ class Api:
                 "\n".join(context_parts)
             )
         else:
-            # comportamento padrão
+            # modo padrão
             system_instruction = (
                 "você é um assistente de desktop avançado. aja naturalmente, como um parceiro de trabalho.\n"
                 "responda sempre em português do brasil. use letras minúsculas.\n"
@@ -127,7 +128,7 @@ class Api:
                 "\n".join(context_parts)
             )
 
-        # chama o llm
+        # chamando o llm
         response = self.llm.generate_response(
             text, 
             image_b64=image_b64, 
@@ -135,10 +136,10 @@ class Api:
             system_instruction=system_instruction
         )
 
-        # atualiza o mcp com a interação
+        # atualiza o mcp com essa interação
         self.mcp.add_task(f"User query: {text[:50]}...")
         
-        # salva no rag
+        # salva na memória rag
         if self.rag_enabled and text and len(text) > 20:
             self.rag.add_document(text, source="user_chat")
 
@@ -154,7 +155,7 @@ class Api:
                 monitor = sct.monitors[1]
                 sct_img = sct.grab(monitor)
                 img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-                # redimensiona para performance
+                # diminui o tamanho pra não travar tudo
                 img.thumbnail((1024, 1024))
                 
                 buffered = BytesIO()
@@ -165,10 +166,10 @@ class Api:
             return f"falha ao capturar tela: {str(e)}"
 
         window.show()
-        # passa o prompt ativo para o send_message
+        # manda o prompt ativo junto pro send_message
         return self.send_message(prompt, img_str, active_prompt=active_prompt)
 
-    # métodos de áudio
+    # parte de áudio
     def toggle_recording(self, start):
         if start:
             if not self.recording:
@@ -184,12 +185,12 @@ class Api:
         self.audio_frames = []
         
         def record_thread():
-            print("DEBUG: thread de áudio iniciada")
+            print("DEBUG: thread de áudio começou")
             p = None
             stream = None
             try:
                 p = pyaudio.PyAudio()
-                # 16000hz padrão para sr
+                # 16000hz é o padrão pro sr
                 stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
                 print("DEBUG: stream aberto com sucesso")
                 
@@ -241,7 +242,7 @@ class Api:
                 text = r.recognize_google(audio_data, language="pt-BR")
                 print(f"DEBUG: texto reconhecido: {text}")
                 
-                # deleção robusta com retry
+                # tentando apagar o arquivo na marra (com retry)
                 for _ in range(5):
                     try:
                         os.unlink(filename)

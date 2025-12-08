@@ -7,23 +7,23 @@ import pypdf
 
 class WebSearchManager:
     def __init__(self):
-        self.cache = {} # Simple in-memory cache URL -> content
+        self.cache = {} # cache simples na memória (url -> conteúdo)
         self.ddgs = DDGS()
 
     def search(self, query, num_results=3):
         try:
-            # 1. Get raw search results (link & Snippet)
+            # 1. pegando resultados brutos (link e trecho)
             results = list(self.ddgs.text(query, max_results=num_results))
             
-            # 2. Deep Scrape the top result to improve accuracy
-            # (Fetching full content prevents "hallucination based on limited snippet")
+            # 2. raspando fundo no primeiro resultado pra melhorar a precisão
+            # (pegar o conteúdo todo evita alucinação com trecho curto)
             if results:
                 top_url = results[0]['href']
                 print(f"DEBUG: Deep Scraping top result: {top_url}")
                 full_content = self.scrape(top_url)
                 
-                # Append full content to the result body
-                results[0]['body'] += f"\n\n[FULL CONTENT RETRIEVED VIA JINA READER]:\n{full_content[:3000]}..." # Limit 3k chars
+                # juntando o conteúdo todo no corpo do resultado
+                results[0]['body'] += f"\n\n[FULL CONTENT RETRIEVED VIA JINA READER]:\n{full_content[:3000]}..." # limitando 3k caracteres
 
             return results
         except Exception as e:
@@ -35,21 +35,21 @@ class WebSearchManager:
         if url in self.cache:
             return self.cache[url]
 
-        # Use Jina Reader for cleaner Markdown extraction
+        # usando o jina reader pra extrair markdown mais limpo
         jina_url = f"https://r.jina.ai/{url}"
         
         try:
-            # Basic Anti-Bot headers
+            # headers básicos pra não parecer robô
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'X-Return-Format': 'markdown'
             }
             
-            # Check if PDF
+            # checando se é pdf
             if url.lower().endswith('.pdf'):
                 return self._scrape_pdf(url, headers)
 
-            # TRY JINA AI FIRST (Simpler, cleaner)
+            # tenta jina ai primeiro (mais simples e limpo)
             try:
                 response = requests.get(jina_url, headers=headers, timeout=10)
                 if response.status_code == 200:
@@ -59,19 +59,19 @@ class WebSearchManager:
             except Exception as jina_err:
                 print(f"DEBUG: Jina Reader failed ({jina_err}), falling back to direct soup.")
 
-            # FALLBACK to BeautifulSoup
+            # se der ruim, vai de beautifulsoup mesmo
             response = requests.get(url, headers=headers, timeout=5)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Remove scripts and styles
+            # tirando scripts e estilos
             for script in soup(["script", "style"]):
                 script.extract()
 
             text = soup.get_text()
             
-            # Clean whitespaces
+            # limpando espaços em branco
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = '\n'.join(chunk for chunk in chunks if chunk)

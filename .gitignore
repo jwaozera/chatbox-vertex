@@ -220,3 +220,5 @@ settings.json
 test_mcp.json
 web_search_manager
 
+test_openrouter.py
+test_gemini.py
